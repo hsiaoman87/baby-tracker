@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import FullCalendar from '@fullcalendar/react';
+import listPlugin from '@fullcalendar/list';
+import timeGridPlugin from '@fullcalendar/timegrid';
 import gsjson from 'google-spreadsheet-to-json';
+import * as _ from 'lodash-es';
+import { parse } from 'date-fns';
 
-import logo from './logo.svg';
 import './App.css';
 
 function App() {
@@ -13,28 +17,38 @@ function App() {
         spreadsheetId: process.env.REACT_APP_SPREADSHEET_ID,
       });
 
-      setData(spreadsheet);
+      const events = _.map(spreadsheet, row => {
+        let date = row.timestamp;
+        date = _.replace(date, ' at ', ' ');
+        date = _.replace(date, 'AM', ' AM');
+        date = _.replace(date, 'PM', ' PM');
+
+        return {
+          title: row.activity,
+          start: parse(date),
+        };
+      });
+
+      setData(events);
     }
 
     fetchData();
   }, []);
 
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div className="root">
+      <FullCalendar
+        defaultView="listDay"
+        height="parent"
+        navLinks
+        header={{
+          left: 'prev,next today',
+          center: 'title',
+          right: 'timeGridWeek,timeGridDay,listDay',
+        }}
+        plugins={[listPlugin, timeGridPlugin]}
+        events={data}
+      />
     </div>
   );
 }
