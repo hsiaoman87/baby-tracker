@@ -8,6 +8,7 @@
     "@fullcalendar/react": "^4.2.0",
     "@fullcalendar/timegrid": "^4.2.0",
     "google-spreadsheet-to-json": "^1.0.0",
+    "lodash-es": "^4.17.11",
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
     "react-scripts": "3.0.1"
