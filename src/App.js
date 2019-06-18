@@ -33,20 +33,25 @@ export function getEvent(row) {
   let title;
   let type;
   let amount;
+  let color;
 
   if (row.activity.match(/poop/)) {
     title = `💩${row.activity}`;
     type = EVENT_TYPES.POOP;
+    color = 'brown';
   } else if (row.activity.match(/asleep|down/)) {
     title = `😴${row.activity}`;
     type = EVENT_TYPES.ASLEEP;
+    color = 'green';
   } else if (row.activity.match(/awake|up/)) {
     title = `😊${row.activity}`;
     type = EVENT_TYPES.AWAKE;
+    color = 'green';
   } else if (row.activity.match(/\d+/)) {
     title = `🍼${row.activity}`;
     type = EVENT_TYPES.EAT;
     amount = parseInt(row.activity.match(/\d+/)[0]);
+    color = 'purple';
   } else {
     title = row.activity;
     type = EVENT_TYPES.MISC;
@@ -57,6 +62,7 @@ export function getEvent(row) {
     title,
     type,
     amount,
+    color,
   };
 }
 
@@ -115,30 +121,7 @@ function App() {
 
       const events = processEvents(rows);
 
-      // decorate event sources
-      const groups = _.groupBy(events, 'type');
-      const eventSources = _.map(groups, (events, type) => {
-        let eventSource = { events };
-
-        switch (type) {
-          case EVENT_TYPES.POOP:
-            eventSource.color = 'brown';
-            break;
-          case EVENT_TYPES.ASLEEP:
-          case EVENT_TYPES.AWAKE:
-            eventSource.color = 'green';
-            break;
-          case EVENT_TYPES.EAT:
-            eventSource.color = 'purple';
-            break;
-          default:
-            break;
-        }
-
-        return eventSource;
-      });
-
-      setData(eventSources);
+      setData(events);
     }
 
     fetchData();
@@ -157,7 +140,7 @@ function App() {
           right: 'timeGridWeek,timeGridDay,listDay',
         }}
         plugins={[listPlugin, timeGridPlugin]}
-        eventSources={data}
+        events={data}
       />
     </div>
   );
