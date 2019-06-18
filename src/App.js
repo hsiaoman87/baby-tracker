@@ -26,44 +26,164 @@ export function parseTime(timestamp) {
   return parse(time);
 }
 
-export function getEvent(row) {
-  // decorate with type and parse timestamp
-  const start = parseTime(row.timestamp);
-
-  let title;
-  let type;
-  let amount;
-  let color;
-
-  if (row.activity.match(/poop/)) {
-    title = `💩${row.activity}`;
-    type = EVENT_TYPES.POOP;
-    color = 'brown';
-  } else if (row.activity.match(/asleep|down/)) {
-    title = `😴${row.activity}`;
-    type = EVENT_TYPES.ASLEEP;
-    color = 'green';
-  } else if (row.activity.match(/awake|up/)) {
-    title = `😊${row.activity}`;
-    type = EVENT_TYPES.AWAKE;
-    color = 'green';
-  } else if (row.activity.match(/\d+/)) {
-    title = `🍼${row.activity}`;
-    type = EVENT_TYPES.EAT;
-    amount = parseInt(row.activity.match(/\d+/)[0]);
-    color = 'purple';
-  } else {
-    title = row.activity;
-    type = EVENT_TYPES.MISC;
+export class ActivityEvent {
+  static create(row) {
+    if (row.activity.match(/poop/)) {
+      return new PoopActivityEvent(row);
+    } else if (row.activity.match(/asleep|down/)) {
+      return new AsleepActivityEvent(row);
+    } else if (row.activity.match(/awake|up/)) {
+      return new AwakeActivityEvent(row);
+    } else if (row.activity.match(/\d+/)) {
+      return new EatActivityEvent(row);
+    } else {
+      return new ActivityEvent(row);
+    }
   }
 
-  return {
-    start,
-    title,
-    type,
-    amount,
-    color,
-  };
+  constructor(row) {
+    this.row = row;
+  }
+
+  get start() {
+    return parseTime(this.row.timestamp);
+  }
+
+  get title() {
+    return this.row.activity;
+  }
+
+  get type() {
+    return EVENT_TYPES.MISC;
+  }
+
+  canCoalesce(event) {
+    return false;
+  }
+
+  toJson() {
+    return {
+      start: this.start,
+      title: this.title,
+      color: this.color,
+    };
+  }
+}
+
+export class PoopActivityEvent extends ActivityEvent {
+  get color() {
+    return 'brown';
+  }
+
+  get title() {
+    return `💩${super.title}`;
+  }
+
+  get type() {
+    return EVENT_TYPES.POOP;
+  }
+}
+
+export class AsleepActivityEvent extends ActivityEvent {
+  get color() {
+    return 'green';
+  }
+
+  get title() {
+    if (this.end) {
+      const minutesAsleep = differenceInMinutes(this.end, this.start);
+      return `😴 asleep for ${this.convertMinsToHrsMins(minutesAsleep)}`;
+    } else {
+      return `😴${super.title}`;
+    }
+  }
+
+  get type() {
+    return EVENT_TYPES.ASLEEP;
+  }
+
+  convertMinsToHrsMins(mins) {
+    let h = Math.floor(mins / 60);
+    let m = mins % 60;
+    m = m < 10 ? '0' + m : m;
+    return `${h}:${m}`;
+  }
+
+  canCoalesce(event) {
+    return differenceInHours(event.start, this.start) < 24;
+  }
+
+  add(event) {
+    this.end = event.start;
+  }
+
+  toJson() {
+    return {
+      ...super.toJson(),
+      end: this.end,
+    };
+  }
+}
+
+export class AwakeActivityEvent extends ActivityEvent {
+  get color() {
+    return 'green';
+  }
+
+  get title() {
+    return `😊${super.title}`;
+  }
+
+  get type() {
+    return EVENT_TYPES.AWAKE;
+  }
+}
+
+export class EatActivityEvent extends ActivityEvent {
+  constructor(row) {
+    super();
+    this.rows = [row];
+  }
+
+  get row() {
+    return this.rows[0];
+  }
+
+  set row(row) {}
+
+  get amount() {
+    return _.sumBy(this.rows, row => parseInt(row.activity.match(/\d+/)[0]));
+  }
+
+  get color() {
+    return 'purple';
+  }
+
+  get title() {
+    const emojis = _.times(this.rows.length, () => '🍼').join('');
+    return `${emojis}took ${this.amount}`;
+  }
+
+  get type() {
+    return EVENT_TYPES.EAT;
+  }
+
+  canCoalesce(event) {
+    return differenceInMinutes(event.start, this.start) < 60;
+  }
+
+  add(event) {
+    this.rows.push(event.row);
+    this.end = event.start;
+  }
+
+  toJson() {
+    return {
+      ...super.toJson(),
+      amount: this.amount,
+      end: this.end,
+    };
+  }
 }
 
 export function processEvents(rows) {
@@ -73,27 +193,19 @@ export function processEvents(rows) {
   const events = _.reduce(
     rows,
     (acc, row) => {
-      const event = getEvent(row);
+      const event = ActivityEvent.create(row);
 
-      if (event.type === EVENT_TYPES.AWAKE) {
+      if (event instanceof AwakeActivityEvent) {
         const lastAsleepEvent = recent[EVENT_TYPES.ASLEEP];
-        if (
-          lastAsleepEvent &&
-          differenceInHours(event.start, lastAsleepEvent.start) < 24
-        ) {
-          lastAsleepEvent.end = event.start;
+        if (lastAsleepEvent && lastAsleepEvent.canCoalesce(event)) {
+          lastAsleepEvent.add(event);
         } else {
           acc.push(event);
         }
-      } else if (event.type === EVENT_TYPES.EAT) {
+      } else if (event instanceof EatActivityEvent) {
         const lastEatEvent = recent[EVENT_TYPES.EAT];
-        if (
-          lastEatEvent &&
-          differenceInMinutes(event.start, lastEatEvent.start) < 60
-        ) {
-          lastEatEvent.end = event.start;
-          lastEatEvent.amount += event.amount;
-          lastEatEvent.title = `🍼🍼took ${lastEatEvent.amount}`;
+        if (lastEatEvent && lastEatEvent.canCoalesce(event)) {
+          lastEatEvent.add(event);
         } else {
           acc.push(event);
         }
@@ -107,7 +219,7 @@ export function processEvents(rows) {
     []
   );
 
-  return events;
+  return events.map(event => event.toJson());
 }
 
 function App() {
