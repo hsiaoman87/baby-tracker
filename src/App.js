@@ -4,7 +4,7 @@ import listPlugin from '@fullcalendar/list';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import gsjson from 'google-spreadsheet-to-json';
 import * as _ from 'lodash-es';
-import { differenceInHours, parse } from 'date-fns';
+import { differenceInHours, differenceInMinutes, parse } from 'date-fns';
 
 import './App.css';
 
@@ -26,57 +26,75 @@ export function parseTime(timestamp) {
   return parse(time);
 }
 
-export function getType(activity) {
-  let type;
+export function getEvent(row) {
+  // decorate with type and parse timestamp
+  const start = parseTime(row.timestamp);
 
-  if (activity.match(/poop/)) {
+  let title;
+  let type;
+  let amount;
+
+  if (row.activity.match(/poop/)) {
+    title = `💩${row.activity}`;
     type = EVENT_TYPES.POOP;
-  } else if (activity.match(/asleep|down/)) {
+  } else if (row.activity.match(/asleep|down/)) {
+    title = `😴${row.activity}`;
     type = EVENT_TYPES.ASLEEP;
-  } else if (activity.match(/awake|up/)) {
+  } else if (row.activity.match(/awake|up/)) {
+    title = `😊${row.activity}`;
     type = EVENT_TYPES.AWAKE;
-  } else if (activity.match(/\d+/)) {
+  } else if (row.activity.match(/\d+/)) {
+    title = `🍼${row.activity}`;
     type = EVENT_TYPES.EAT;
+    amount = parseInt(row.activity.match(/\d+/)[0]);
   } else {
+    title = row.activity;
     type = EVENT_TYPES.MISC;
   }
 
-  return type;
+  return {
+    start,
+    title,
+    type,
+    amount,
+  };
 }
 
 export function processEvents(rows) {
+  const recent = {};
+
   // assume list is sorted
-  // decorate with type and parse timestamp
   const events = _.reduce(
     rows,
     (acc, row) => {
-      const timestamp = parseTime(row.timestamp);
-      const type = getType(row.activity);
+      const event = getEvent(row);
 
-      if (type === EVENT_TYPES.AWAKE) {
-        const lastAsleepEvent = _.findLast(
-          acc,
-          event => event.type === EVENT_TYPES.ASLEEP
-        );
+      if (event.type === EVENT_TYPES.AWAKE) {
+        const lastAsleepEvent = recent[EVENT_TYPES.ASLEEP];
         if (
           lastAsleepEvent &&
-          differenceInHours(timestamp, lastAsleepEvent.start) < 24
+          differenceInHours(event.start, lastAsleepEvent.start) < 24
         ) {
-          lastAsleepEvent.end = timestamp;
+          lastAsleepEvent.end = event.start;
         } else {
-          acc.push({
-            title: row.activity,
-            start: timestamp,
-            type,
-          });
+          acc.push(event);
+        }
+      } else if (event.type === EVENT_TYPES.EAT) {
+        const lastEatEvent = recent[EVENT_TYPES.EAT];
+        if (
+          lastEatEvent &&
+          differenceInMinutes(event.start, lastEatEvent.start) < 60
+        ) {
+          lastEatEvent.end = event.start;
+          lastEatEvent.amount += event.amount;
+          lastEatEvent.title = `🍼🍼took ${lastEatEvent.amount}`;
+        } else {
+          acc.push(event);
         }
       } else {
-        acc.push({
-          title: row.activity,
-          start: timestamp,
-          type,
-        });
+        acc.push(event);
       }
+      recent[event.type] = event;
 
       return acc;
     },
@@ -132,6 +150,7 @@ function App() {
         defaultView="listDay"
         height="parent"
         navLinks
+        timeGridEventMinHeight={40}
         header={{
           left: 'prev,next today',
           center: 'title',

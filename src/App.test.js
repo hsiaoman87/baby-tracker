@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import App, { EVENT_TYPES, parseTime, getType, processEvents } from './App';
+import App, { EVENT_TYPES, parseTime, getEvent, processEvents } from './App';
 
 it('renders without crashing', () => {
   const div = document.createElement('div');
@@ -20,45 +20,45 @@ describe('parseTime', () => {
   });
 });
 
-describe('getType', () => {
+describe('getEvent', () => {
   it('parses has pooped', () => {
-    const type = getType('has pooped');
-    expect(type).toEqual(EVENT_TYPES.POOP);
+    const event = getEvent({ activity: 'has pooped' });
+    expect(event.type).toEqual(EVENT_TYPES.POOP);
   });
 
   it('parses asleep', () => {
-    const type = getType('is asleep');
-    expect(type).toEqual(EVENT_TYPES.ASLEEP);
+    const event = getEvent({ activity: 'is asleep' });
+    expect(event.type).toEqual(EVENT_TYPES.ASLEEP);
   });
 
   it('parses down', () => {
-    const type = getType('is down');
-    expect(type).toEqual(EVENT_TYPES.ASLEEP);
+    const event = getEvent({ activity: 'is down' });
+    expect(event.type).toEqual(EVENT_TYPES.ASLEEP);
   });
 
   it('parses awake', () => {
-    const type = getType('is awake');
-    expect(type).toEqual(EVENT_TYPES.AWAKE);
+    const event = getEvent({ activity: 'is awake' });
+    expect(event.type).toEqual(EVENT_TYPES.AWAKE);
   });
 
   it('parses up', () => {
-    const type = getType('is up');
-    expect(type).toEqual(EVENT_TYPES.AWAKE);
+    const event = getEvent({ activity: 'is up' });
+    expect(event.type).toEqual(EVENT_TYPES.AWAKE);
   });
 
   it('parses eating', () => {
-    const type = getType('took 100');
-    expect(type).toEqual(EVENT_TYPES.EAT);
+    const event = getEvent({ activity: 'took 100' });
+    expect(event.type).toEqual(EVENT_TYPES.EAT);
   });
 
   it('parses fallback', () => {
-    const type = getType('laughed for the first time');
-    expect(type).toEqual(EVENT_TYPES.MISC);
+    const event = getEvent({ activity: 'laughed for the first time' });
+    expect(event.type).toEqual(EVENT_TYPES.MISC);
   });
 });
 
 describe('processEvents', () => {
-  it('coalesces dates', () => {
+  it('coalesces sleep events', () => {
     const rows = [
       {
         timestamp: 'June 5, 2019 at 10:19PM',
@@ -73,7 +73,7 @@ describe('processEvents', () => {
     expect(events).toHaveLength(1);
   });
 
-  it('does not coalesce dates outside 24 hours', () => {
+  it('does not coalesce sleep events outside 24 hours', () => {
     const rows = [
       {
         timestamp: 'June 3, 2019 at 10:19PM',
@@ -88,7 +88,37 @@ describe('processEvents', () => {
     expect(events).toHaveLength(2);
   });
 
-  it('does not coalesce dates if it cannot', () => {
+  it('coalesces eat events', () => {
+    const rows = [
+      {
+        timestamp: 'June 5, 2019 at 10:19PM',
+        activity: 'took 100',
+      },
+      {
+        timestamp: 'June 5, 2019 at 10:59AM',
+        activity: 'took 100',
+      },
+    ];
+    const events = processEvents(rows);
+    expect(events).toHaveLength(1);
+  });
+
+  it('does not eat events outside 1 hour', () => {
+    const rows = [
+      {
+        timestamp: 'June 5, 2019 at 10:19AM',
+        activity: 'took 100',
+      },
+      {
+        timestamp: 'June 5, 2019 at 11:19AM',
+        activity: 'took 100',
+      },
+    ];
+    const events = processEvents(rows);
+    expect(events).toHaveLength(2);
+  });
+
+  it('does not coalesce events if it cannot', () => {
     const rows = [
       {
         timestamp: 'June 6, 2019 at 05:19AM',
