@@ -1,8 +1,24 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import gsjson from 'google-spreadsheet-to-json';
+
 import logo from './logo.svg';
 import './App.css';
 
 function App() {
+  const [data, setData] = useState();
+
+  useEffect(() => {
+    async function fetchData() {
+      const spreadsheet = await gsjson({
+        spreadsheetId: process.env.REACT_APP_SPREADSHEET_ID,
+      });
+
+      setData(spreadsheet);
+    }
+
+    fetchData();
+  }, []);
+
   return (
     <div className="App">
       <header className="App-header">
