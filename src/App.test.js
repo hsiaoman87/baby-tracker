@@ -7,6 +7,7 @@ import App, {
   AsleepActivityEvent,
   AwakeActivityEvent,
   EatActivityEvent,
+  NextSleepActivityEvent,
   processEvents,
 } from './App';
 
@@ -93,6 +94,40 @@ describe('EatActivityEvent', () => {
   });
 });
 
+describe('NextSleepActivityEvent', () => {
+  it('has start time offset by 2 hours', () => {
+    const event = new NextSleepActivityEvent(
+      new Date(2019, 5, 6, 5, 19),
+      new Date(2019, 5, 6, 6, 19)
+    );
+    expect(event.start).toEqual(new Date(2019, 5, 6, 7, 19));
+  });
+
+  it('has start time of now', () => {
+    const event = new NextSleepActivityEvent(
+      new Date(2019, 5, 6, 5, 19),
+      new Date(2019, 5, 6, 9, 19)
+    );
+    expect(event.start).toEqual(new Date(2019, 5, 6, 9, 19));
+  });
+
+  it('has daytime title', () => {
+    const event = new NextSleepActivityEvent(
+      new Date(2019, 5, 6, 19, 19),
+      new Date(2019, 5, 6, 19, 19)
+    );
+    expect(event.title).toEqual('Time for a nap!');
+  });
+
+  it('has nighttime title', () => {
+    const event = new NextSleepActivityEvent(
+      new Date(2019, 5, 6, 20, 19),
+      new Date(2019, 5, 6, 20, 19)
+    );
+    expect(event.title).toEqual('Time to sleep!');
+  });
+});
+
 describe('processEvents', () => {
   it('coalesces sleep events', () => {
     const rows = [
@@ -105,7 +140,7 @@ describe('processEvents', () => {
         activity: 'is awake',
       },
     ];
-    const events = processEvents(rows);
+    const { events } = processEvents(rows);
     expect(events).toHaveLength(1);
   });
 
@@ -120,7 +155,7 @@ describe('processEvents', () => {
         activity: 'is awake',
       },
     ];
-    const events = processEvents(rows);
+    const { events } = processEvents(rows);
     expect(events).toHaveLength(2);
   });
 
@@ -135,7 +170,7 @@ describe('processEvents', () => {
         activity: 'took 100',
       },
     ];
-    const events = processEvents(rows);
+    const { events } = processEvents(rows);
     expect(events).toHaveLength(1);
   });
 
@@ -150,7 +185,7 @@ describe('processEvents', () => {
         activity: 'took 100',
       },
     ];
-    const events = processEvents(rows);
+    const { events } = processEvents(rows);
     expect(events).toHaveLength(2);
   });
 
@@ -161,7 +196,7 @@ describe('processEvents', () => {
         activity: 'is asleep',
       },
     ];
-    const events = processEvents(rows);
+    const { events } = processEvents(rows);
     expect(events).toHaveLength(1);
   });
 });

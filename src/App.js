@@ -4,7 +4,14 @@ import listPlugin from '@fullcalendar/list';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import gsjson from 'google-spreadsheet-to-json';
 import * as _ from 'lodash-es';
-import { differenceInHours, differenceInMinutes, parse } from 'date-fns';
+import {
+  addHours,
+  differenceInHours,
+  differenceInMinutes,
+  getHours,
+  max,
+  parse,
+} from 'date-fns';
 
 import './App.css';
 
@@ -186,6 +193,34 @@ export class EatActivityEvent extends ActivityEvent {
   }
 }
 
+export class NextSleepActivityEvent {
+  AWAKE_DURATION = 2; // in hours
+  BEDTIME = 22; // 10pm
+  WAKETIME = 10; // 10am
+
+  constructor(lastAwakeTime, now = new Date()) {
+    const time = addHours(lastAwakeTime, this.AWAKE_DURATION);
+    this.start = max(time, now);
+  }
+
+  get title() {
+    const hours = getHours(this.start);
+    if (hours >= this.BEDTIME || hours < this.WAKETIME) {
+      return 'Time to sleep!';
+    } else {
+      return 'Time for a nap!';
+    }
+  }
+
+  toJson() {
+    return {
+      start: this.start,
+      title: this.title,
+      color: 'green',
+    };
+  }
+}
+
 export function processEvents(rows) {
   const recent = {};
 
@@ -219,7 +254,7 @@ export function processEvents(rows) {
     []
   );
 
-  return events.map(event => event.toJson());
+  return { events: events.map(event => event.toJson()), recent };
 }
 
 function App() {
@@ -231,7 +266,17 @@ function App() {
         spreadsheetId: process.env.REACT_APP_SPREADSHEET_ID,
       });
 
-      const events = processEvents(rows);
+      const { events, recent } = processEvents(rows);
+
+      if (
+        recent[EVENT_TYPES.AWAKE] &&
+        recent[EVENT_TYPES.ASLEEP] &&
+        recent[EVENT_TYPES.AWAKE].start > recent[EVENT_TYPES.ASLEEP].start
+      ) {
+        events.push(
+          new NextSleepActivityEvent(recent[EVENT_TYPES.AWAKE].start).toJson()
+        );
+      }
 
       setData(events);
     }
@@ -246,6 +291,7 @@ function App() {
         height="parent"
         navLinks
         timeGridEventMinHeight={40}
+        nowIndicator
         header={{
           left: 'prev,next today',
           center: 'title',
