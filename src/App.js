@@ -54,11 +54,19 @@ export class ActivityEvent {
     this.row = row;
   }
 
+  get emoji() {
+    return '';
+  }
+
   get start() {
     return parseTime(this.row.timestamp);
   }
 
   get title() {
+    return `${this.emoji}${this.text}`;
+  }
+
+  get text() {
     return this.row.activity;
   }
 
@@ -84,8 +92,12 @@ export class PoopActivityEvent extends ActivityEvent {
     return 'brown';
   }
 
-  get title() {
+  get emoji() {
     return '💩';
+  }
+
+  get text() {
+    return '';
   }
 
   get type() {
@@ -101,19 +113,23 @@ function convertMinsToHrsMins(mins) {
 }
 
 function getAsleepTimeTitle(minutesAsleep) {
-  return `😴asleep for ${convertMinsToHrsMins(minutesAsleep)}`;
+  return `asleep for ${convertMinsToHrsMins(minutesAsleep)}`;
 }
 export class AsleepActivityEvent extends ActivityEvent {
   get color() {
     return 'green';
   }
 
-  get title() {
+  get emoji() {
+    return '😴';
+  }
+
+  get text() {
     if (this.end) {
       const minutesAsleep = differenceInMinutes(this.end, this.start);
       return getAsleepTimeTitle(minutesAsleep);
     } else {
-      return `😴${super.title}`;
+      return `${super.text}`;
     }
   }
 
@@ -142,8 +158,8 @@ export class AwakeActivityEvent extends ActivityEvent {
     return 'green';
   }
 
-  get title() {
-    return `😊${super.title}`;
+  get emoji() {
+    return '😊';
   }
 
   get type() {
@@ -173,9 +189,12 @@ export class EatActivityEvent extends ActivityEvent {
     return 'purple';
   }
 
-  get title() {
-    const emojis = _.times(this.rows.length, () => '🍼').join('');
-    return `${emojis}took ${this.amount}`;
+  get emoji() {
+    return _.times(this.rows.length, _.constant('🍼')).join('');
+  }
+
+  get text() {
+    return `took ${this.amount}`;
   }
 
   get type() {
@@ -200,17 +219,26 @@ export class EatActivityEvent extends ActivityEvent {
   }
 }
 
-export class NextSleepActivityEvent {
+export class NextSleepActivityEvent extends ActivityEvent {
   AWAKE_DURATION = 2; // in hours
   BEDTIME = 22; // 10pm
   WAKETIME = 10; // 10am
 
   constructor(lastAwakeTime, now = new Date()) {
+    super();
     const time = addHours(lastAwakeTime, this.AWAKE_DURATION);
-    this.start = max(time, now);
+    this._start = max(time, now);
   }
 
-  get title() {
+  get emoji() {
+    return '💤';
+  }
+
+  get start() {
+    return this._start;
+  }
+
+  get text() {
     const hours = getHours(this.start);
     if (hours >= this.BEDTIME || hours < this.WAKETIME) {
       return 'Time to sleep!';
@@ -343,7 +371,7 @@ function getAllDayEvents(events) {
       allDayEvents.push(
         new AllDayEvent({
           start: date,
-          title: _.times(numPoops, () => '💩').join(''),
+          title: _.times(numPoops, _.constant('💩')).join(''),
           color: 'brown',
         })
       );
