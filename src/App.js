@@ -85,7 +85,7 @@ export class PoopActivityEvent extends ActivityEvent {
   }
 
   get title() {
-    return `💩${super.title}`;
+    return '💩';
   }
 
   get type() {
@@ -101,7 +101,7 @@ function convertMinsToHrsMins(mins) {
 }
 
 function getAsleepTimeTitle(minutesAsleep) {
-  return `😴 asleep for ${convertMinsToHrsMins(minutesAsleep)}`;
+  return `😴asleep for ${convertMinsToHrsMins(minutesAsleep)}`;
 }
 export class AsleepActivityEvent extends ActivityEvent {
   get color() {
