@@ -9,6 +9,8 @@ import App, {
   EatActivityEvent,
   NextSleepActivityEvent,
   processEvents,
+  getEventsGroupedByDate,
+  getTotalTimeAsleep,
 } from './App';
 
 it('renders without crashing', () => {
@@ -174,7 +176,7 @@ describe('processEvents', () => {
     expect(events).toHaveLength(1);
   });
 
-  it('does not eat events outside 1 hour', () => {
+  it('does not coalesce eat events outside 1 hour', () => {
     const rows = [
       {
         timestamp: 'June 5, 2019 at 10:19AM',
@@ -198,5 +200,50 @@ describe('processEvents', () => {
     ];
     const { events } = processEvents(rows);
     expect(events).toHaveLength(1);
+  });
+});
+
+describe('getEventsGroupedByDate', () => {
+  it('works across date boundaries', () => {
+    const rows = [
+      {
+        timestamp: 'June 4, 2019 at 10:19PM',
+        activity: 'asleep',
+      },
+      {
+        timestamp: 'June 5, 2019 at 11:19AM',
+        activity: 'awake',
+      },
+    ];
+    const { events } = processEvents(rows);
+    const eventsGroupedByDate = getEventsGroupedByDate(events);
+    expect(eventsGroupedByDate).toEqual({
+      '2019-06-04': [events[0]],
+      '2019-06-05': [events[0]],
+    });
+  });
+});
+
+describe('getTotalTimeAsleep', () => {
+  const rows = [
+    {
+      timestamp: 'June 4, 2019 at 10:19PM',
+      activity: 'asleep',
+    },
+    {
+      timestamp: 'June 5, 2019 at 11:19AM',
+      activity: 'awake',
+    },
+  ];
+  const { events } = processEvents(rows);
+
+  it('works for last night sleep', () => {
+    const totalTimeAsleep = getTotalTimeAsleep(events, '2019-06-04');
+    expect(totalTimeAsleep).toEqual(101);
+  });
+
+  it('works for tonight sleep', () => {
+    const totalTimeAsleep = getTotalTimeAsleep(events, '2019-06-05');
+    expect(totalTimeAsleep).toEqual(679);
   });
 });

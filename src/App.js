@@ -8,9 +8,11 @@ import {
   addHours,
   differenceInHours,
   differenceInMinutes,
+  format,
   getHours,
   max,
   parse,
+  startOfDay,
 } from 'date-fns';
 
 import './App.css';
@@ -91,6 +93,16 @@ export class PoopActivityEvent extends ActivityEvent {
   }
 }
 
+function convertMinsToHrsMins(mins) {
+  let h = Math.floor(mins / 60);
+  let m = mins % 60;
+  m = m < 10 ? '0' + m : m;
+  return `${h}:${m}`;
+}
+
+function getAsleepTimeTitle(minutesAsleep) {
+  return `😴 asleep for ${convertMinsToHrsMins(minutesAsleep)}`;
+}
 export class AsleepActivityEvent extends ActivityEvent {
   get color() {
     return 'green';
@@ -99,7 +111,7 @@ export class AsleepActivityEvent extends ActivityEvent {
   get title() {
     if (this.end) {
       const minutesAsleep = differenceInMinutes(this.end, this.start);
-      return `😴 asleep for ${this.convertMinsToHrsMins(minutesAsleep)}`;
+      return getAsleepTimeTitle(minutesAsleep);
     } else {
       return `😴${super.title}`;
     }
@@ -107,13 +119,6 @@ export class AsleepActivityEvent extends ActivityEvent {
 
   get type() {
     return EVENT_TYPES.ASLEEP;
-  }
-
-  convertMinsToHrsMins(mins) {
-    let h = Math.floor(mins / 60);
-    let m = mins % 60;
-    m = m < 10 ? '0' + m : m;
-    return `${h}:${m}`;
   }
 
   canCoalesce(event) {
@@ -159,7 +164,9 @@ export class EatActivityEvent extends ActivityEvent {
   set row(row) {}
 
   get amount() {
-    return _.sumBy(this.rows, row => parseInt(row.activity.match(/\d+/)[0]));
+    return _.sumBy(this.rows, row =>
+      parseInt(row.activity.match(/\d+/)[0], 10)
+    );
   }
 
   get color() {
@@ -221,6 +228,16 @@ export class NextSleepActivityEvent {
   }
 }
 
+export class AllDayEvent {
+  constructor(obj) {
+    this.obj = obj;
+  }
+
+  toJson() {
+    return this.obj;
+  }
+}
+
 export function processEvents(rows) {
   const recent = {};
 
@@ -254,7 +271,135 @@ export function processEvents(rows) {
     []
   );
 
-  return { events: events.map(event => event.toJson()), recent };
+  return { events, recent };
+}
+
+export function getEventsGroupedByDate(events) {
+  return _.reduce(
+    events,
+    (acc, event) => {
+      const startDate = format(event.start, 'YYYY-MM-DD');
+      if (!acc[startDate]) {
+        acc[startDate] = [];
+      }
+      acc[startDate].push(event);
+
+      if (event.end) {
+        const endDate = format(event.end, 'YYYY-MM-DD');
+        if (startDate !== endDate) {
+          if (!acc[endDate]) {
+            acc[endDate] = [];
+          }
+          acc[endDate].push(event);
+        }
+      }
+
+      return acc;
+    },
+    {}
+  );
+}
+
+export function getTotalTimeAsleep(asleepEvents, date) {
+  return _.reduce(
+    asleepEvents,
+    (acc, event) => {
+      let timeAsleep;
+      if (event.end) {
+        let startTime;
+        let endTime;
+        if (format(event.start, 'YYYY-MM-DD') !== date) {
+          // sleep from night before
+          startTime = startOfDay(event.end);
+          endTime = event.end;
+        } else if (format(event.end, 'YYYY-MM-DD') !== date) {
+          // tonight's sleep
+          startTime = event.start;
+          endTime = startOfDay(event.end);
+        } else {
+          // nap
+          startTime = event.start;
+          endTime = event.end;
+        }
+        timeAsleep = differenceInMinutes(endTime, startTime);
+      } else {
+        timeAsleep = 0;
+      }
+      return acc + timeAsleep;
+    },
+    0
+  );
+}
+
+function getAllDayEvents(events) {
+  // Use formatted dates here to represent all-day
+  const eventsGroupedByDate = getEventsGroupedByDate(events);
+
+  return _.flatMap(eventsGroupedByDate, (events, date) => {
+    const groupedEvents = _.groupBy(events, _.property('type'));
+    const allDayEvents = [];
+    if (groupedEvents[EVENT_TYPES.POOP]) {
+      const numPoops = groupedEvents[EVENT_TYPES.POOP].length;
+      allDayEvents.push(
+        new AllDayEvent({
+          start: date,
+          title: _.times(numPoops, () => '💩').join(''),
+          color: 'brown',
+        })
+      );
+    }
+    if (groupedEvents[EVENT_TYPES.ASLEEP]) {
+      const totalTimeAsleep = getTotalTimeAsleep(
+        groupedEvents[EVENT_TYPES.ASLEEP],
+        date
+      );
+      if (totalTimeAsleep) {
+        allDayEvents.push(
+          new AllDayEvent({
+            start: date,
+            title: getAsleepTimeTitle(totalTimeAsleep),
+            color: 'green',
+          })
+        );
+      }
+    }
+    if (groupedEvents[EVENT_TYPES.EAT]) {
+      const totalAmount = _.reduce(
+        groupedEvents[EVENT_TYPES.EAT],
+        (acc, event) => {
+          let amount;
+          if (event.amount) {
+            amount = event.amount;
+          } else {
+            amount = 0;
+          }
+          return acc + amount;
+        },
+        0
+      );
+      if (totalAmount) {
+        allDayEvents.push(
+          new AllDayEvent({
+            start: date,
+            title: `🍼took ${totalAmount}`,
+            color: 'purple',
+          })
+        );
+      }
+    }
+
+    return allDayEvents;
+  });
+}
+
+function getNextSleepEvent(recent) {
+  if (
+    recent[EVENT_TYPES.AWAKE] &&
+    recent[EVENT_TYPES.ASLEEP] &&
+    recent[EVENT_TYPES.AWAKE].start > recent[EVENT_TYPES.ASLEEP].start
+  ) {
+    return new NextSleepActivityEvent(recent[EVENT_TYPES.AWAKE].start);
+  }
 }
 
 function App() {
@@ -268,17 +413,16 @@ function App() {
 
       const { events, recent } = processEvents(rows);
 
-      if (
-        recent[EVENT_TYPES.AWAKE] &&
-        recent[EVENT_TYPES.ASLEEP] &&
-        recent[EVENT_TYPES.AWAKE].start > recent[EVENT_TYPES.ASLEEP].start
-      ) {
-        events.push(
-          new NextSleepActivityEvent(recent[EVENT_TYPES.AWAKE].start).toJson()
-        );
+      const nextSleepEvent = getNextSleepEvent(recent);
+      if (nextSleepEvent) {
+        events.push(nextSleepEvent);
       }
 
-      setData(events);
+      const allDayEvents = getAllDayEvents(events);
+
+      const allEvents = events.concat(allDayEvents);
+
+      setData(_.map(allEvents, event => event.toJson()));
     }
 
     fetchData();
