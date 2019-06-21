@@ -72,24 +72,24 @@ describe('ActivityEvent.create', () => {
 
 describe('AsleepActivityEvent', () => {
   it('has correct titles for multiple events', () => {
-    const event1 = new AsleepActivityEvent({
+    const event1 = ActivityEvent.create({
       timestamp: 'June 3, 2019 at 10:19AM',
       activity: 'is asleep',
     });
-    const event2 = new AsleepActivityEvent({
+    const event2 = ActivityEvent.create({
       timestamp: 'June 3, 2019 at 12:00PM',
       activity: 'is awake',
     });
     event1.add(event2);
-    expect(event1.title).toEqual('😴 asleep for 1:41');
+    expect(event1.title).toEqual('😴asleep for 1:41');
   });
 });
 
 describe('EatActivityEvent', () => {
   it('has correct titles for multiple events', () => {
-    const event1 = new EatActivityEvent({ activity: 'took 100' });
-    const event2 = new EatActivityEvent({ activity: 'took 200' });
-    const event3 = new EatActivityEvent({ activity: 'took 300' });
+    const event1 = new EatActivityEvent({ text: 'took 100' });
+    const event2 = new EatActivityEvent({ text: 'took 200' });
+    const event3 = new EatActivityEvent({ text: 'took 300' });
     event1.add(event2);
     event1.add(event3);
     expect(event1.title).toEqual('🍼🍼🍼took 600');
@@ -118,7 +118,7 @@ describe('NextSleepActivityEvent', () => {
       new Date(2019, 5, 6, 19, 19),
       new Date(2019, 5, 6, 19, 19)
     );
-    expect(event.title).toEqual('Time for a nap!');
+    expect(event.title).toEqual('💤Time for a nap!');
   });
 
   it('has nighttime title', () => {
@@ -126,7 +126,7 @@ describe('NextSleepActivityEvent', () => {
       new Date(2019, 5, 6, 20, 19),
       new Date(2019, 5, 6, 20, 19)
     );
-    expect(event.title).toEqual('Time to sleep!');
+    expect(event.title).toEqual('💤Time to sleep!');
   });
 });
 

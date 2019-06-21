@@ -37,29 +37,35 @@ export function parseTime(timestamp) {
 
 export class ActivityEvent {
   static create(row) {
-    if (row.activity.match(/poop/)) {
-      return new PoopActivityEvent(row);
-    } else if (row.activity.match(/asleep|down/)) {
-      return new AsleepActivityEvent(row);
-    } else if (row.activity.match(/awake|up/)) {
-      return new AwakeActivityEvent(row);
-    } else if (row.activity.match(/\d+/)) {
-      return new EatActivityEvent(row);
+    const start = parseTime(row.timestamp);
+    const text = row.activity;
+    if (text.match(/poop/)) {
+      return new PoopActivityEvent({ start, text });
+    } else if (text.match(/asleep|down/)) {
+      return new AsleepActivityEvent({ start, text });
+    } else if (text.match(/awake|up/)) {
+      return new AwakeActivityEvent({ start, text });
+    } else if (text.match(/\d+/)) {
+      return new EatActivityEvent({ start, text });
     } else {
-      return new ActivityEvent(row);
+      return new ActivityEvent({ start, text });
     }
   }
 
-  constructor(row) {
-    this.row = row;
+  constructor(obj) {
+    this.obj = obj;
+  }
+
+  get color() {
+    return this.obj.color;
   }
 
   get emoji() {
-    return '';
+    return this.obj.emoji || '';
   }
 
   get start() {
-    return parseTime(this.row.timestamp);
+    return this.obj.start;
   }
 
   get title() {
@@ -67,7 +73,7 @@ export class ActivityEvent {
   }
 
   get text() {
-    return this.row.activity;
+    return this.obj.text || '';
   }
 
   get type() {
@@ -129,7 +135,7 @@ export class AsleepActivityEvent extends ActivityEvent {
       const minutesAsleep = differenceInMinutes(this.end, this.start);
       return getAsleepTimeTitle(minutesAsleep);
     } else {
-      return `${super.text}`;
+      return super.text;
     }
   }
 
@@ -168,21 +174,19 @@ export class AwakeActivityEvent extends ActivityEvent {
 }
 
 export class EatActivityEvent extends ActivityEvent {
-  constructor(row) {
+  constructor(obj) {
     super();
-    this.rows = [row];
+    this.objs = [obj];
   }
 
-  get row() {
-    return this.rows[0];
+  get obj() {
+    return this.objs[0];
   }
 
-  set row(row) {}
+  set obj(obj) {}
 
   get amount() {
-    return _.sumBy(this.rows, row =>
-      parseInt(row.activity.match(/\d+/)[0], 10)
-    );
+    return _.sumBy(this.objs, obj => parseInt(obj.text.match(/\d+/)[0], 10));
   }
 
   get color() {
@@ -190,7 +194,7 @@ export class EatActivityEvent extends ActivityEvent {
   }
 
   get emoji() {
-    return _.times(this.rows.length, _.constant('🍼')).join('');
+    return _.times(this.objs.length, _.constant('🍼')).join('');
   }
 
   get text() {
@@ -206,7 +210,7 @@ export class EatActivityEvent extends ActivityEvent {
   }
 
   add(event) {
-    this.rows.push(event.row);
+    this.objs.push(event.obj);
     this.end = event.start;
   }
 
@@ -230,6 +234,10 @@ export class NextSleepActivityEvent extends ActivityEvent {
     this._start = max(time, now);
   }
 
+  get color() {
+    return 'green';
+  }
+
   get emoji() {
     return '💤';
   }
@@ -245,24 +253,6 @@ export class NextSleepActivityEvent extends ActivityEvent {
     } else {
       return 'Time for a nap!';
     }
-  }
-
-  toJson() {
-    return {
-      start: this.start,
-      title: this.title,
-      color: 'green',
-    };
-  }
-}
-
-export class AllDayEvent {
-  constructor(obj) {
-    this.obj = obj;
-  }
-
-  toJson() {
-    return this.obj;
   }
 }
 
@@ -369,9 +359,9 @@ function getAllDayEvents(events) {
     if (groupedEvents[EVENT_TYPES.POOP]) {
       const numPoops = groupedEvents[EVENT_TYPES.POOP].length;
       allDayEvents.push(
-        new AllDayEvent({
+        new ActivityEvent({
+          emoji: _.times(numPoops, _.constant('💩')).join(''),
           start: date,
-          title: _.times(numPoops, _.constant('💩')).join(''),
           color: 'brown',
         })
       );
@@ -382,10 +372,12 @@ function getAllDayEvents(events) {
         date
       );
       if (totalTimeAsleep) {
+        const numNaps = groupedEvents[EVENT_TYPES.ASLEEP].length;
         allDayEvents.push(
-          new AllDayEvent({
+          new ActivityEvent({
+            emoji: _.times(numNaps, _.constant('😴')).join(''),
             start: date,
-            title: getAsleepTimeTitle(totalTimeAsleep),
+            text: getAsleepTimeTitle(totalTimeAsleep),
             color: 'green',
           })
         );
@@ -406,10 +398,12 @@ function getAllDayEvents(events) {
         0
       );
       if (totalAmount) {
+        const numEats = groupedEvents[EVENT_TYPES.EAT].length;
         allDayEvents.push(
-          new AllDayEvent({
+          new ActivityEvent({
+            emoji: _.times(numEats, _.constant('🍼')).join(''),
             start: date,
-            title: `🍼took ${totalAmount}`,
+            text: `took ${totalAmount}`,
             color: 'purple',
           })
         );
