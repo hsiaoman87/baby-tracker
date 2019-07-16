@@ -10,12 +10,23 @@
   bottom: 0;
 }
 
-.fc-header-toolbar {
+.fc-left,
+.fc-right {
   /*
   the calendar will be butting up against the edges,
   but let's scoot in the header's buttons
   */
-  padding-top: 1em;
-  padding-left: 1em;
-  padding-right: 1em;
+  padding: 1em;
+}
+
+.fc-left {
+  display: flex;
+}
+
+.fc-toolbar.fc-header-toolbar {
+  margin-bottom: 0.5em;
+}
+
+.fc-toolbar h2 {
+  text-align: center;
 }
