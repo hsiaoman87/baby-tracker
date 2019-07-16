@@ -97,12 +97,12 @@ describe('EatActivityEvent', () => {
 });
 
 describe('NextSleepActivityEvent', () => {
-  it('has start time offset by 2 hours', () => {
+  it('has start time offset by 2.5 hours', () => {
     const event = new NextSleepActivityEvent(
       new Date(2019, 5, 6, 5, 19),
       new Date(2019, 5, 6, 6, 19)
     );
-    expect(event.start).toEqual(new Date(2019, 5, 6, 7, 19));
+    expect(event.start).toEqual(new Date(2019, 5, 6, 7, 49));
   });
 
   it('has start time of now', () => {
@@ -118,7 +118,7 @@ describe('NextSleepActivityEvent', () => {
       new Date(2019, 5, 6, 19, 19),
       new Date(2019, 5, 6, 19, 19)
     );
-    expect(event.title).toEqual('💤Time for a nap!');
+    expect(event.title).toEqual('💤Time for a nap! (awake for 2:30)');
   });
 
   it('has nighttime title', () => {
@@ -126,7 +126,7 @@ describe('NextSleepActivityEvent', () => {
       new Date(2019, 5, 6, 20, 19),
       new Date(2019, 5, 6, 20, 19)
     );
-    expect(event.title).toEqual('💤Time to sleep!');
+    expect(event.title).toEqual('💤Time to sleep! (awake for 2:30)');
   });
 });
 

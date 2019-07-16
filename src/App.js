@@ -118,6 +118,10 @@ function convertMinsToHrsMins(mins) {
   return `${h}:${m}`;
 }
 
+function getAwakeTimeTitle(minutesAwake) {
+  return `awake for ${convertMinsToHrsMins(minutesAwake)}`;
+}
+
 function getAsleepTimeTitle(minutesAsleep) {
   return `asleep for ${convertMinsToHrsMins(minutesAsleep)}`;
 }
@@ -224,12 +228,13 @@ export class EatActivityEvent extends ActivityEvent {
 }
 
 export class NextSleepActivityEvent extends ActivityEvent {
-  AWAKE_DURATION = 2; // in hours
+  AWAKE_DURATION = 2.5; // in hours
   BEDTIME = 22; // 10pm
   WAKETIME = 10; // 10am
 
   constructor(lastAwakeTime, now = new Date()) {
     super();
+    this._lastAwakeTime = lastAwakeTime;
     const time = addHours(lastAwakeTime, this.AWAKE_DURATION);
     this._start = max(time, now);
   }
@@ -247,11 +252,13 @@ export class NextSleepActivityEvent extends ActivityEvent {
   }
 
   get text() {
+    const minutesAwake = differenceInMinutes(this.start, this._lastAwakeTime);
+    const awakeText = getAwakeTimeTitle(minutesAwake);
     const hours = getHours(this.start);
     if (hours >= this.BEDTIME || hours < this.WAKETIME) {
-      return 'Time to sleep!';
+      return `Time to sleep! (${awakeText})`;
     } else {
-      return 'Time for a nap!';
+      return `Time for a nap! (${awakeText})`;
     }
   }
 }
