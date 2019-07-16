@@ -39,11 +39,11 @@ export class ActivityEvent {
   static create(row) {
     const start = parseTime(row.timestamp);
     const text = row.activity;
-    if (text.match(/poop/)) {
+    if (text.match(/poo/)) {
       return new PoopActivityEvent({ start, text });
-    } else if (text.match(/asleep|down/)) {
+    } else if (text.match(/sleep|down/)) {
       return new AsleepActivityEvent({ start, text });
-    } else if (text.match(/awake|up/)) {
+    } else if (text.match(/wake|up/)) {
       return new AwakeActivityEvent({ start, text });
     } else if (text.match(/\d+/)) {
       return new EatActivityEvent({ start, text });
