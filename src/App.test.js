@@ -68,6 +68,13 @@ describe('ActivityEvent.create', () => {
     });
     expect(event).toBeInstanceOf(ActivityEvent);
   });
+
+  it('parses number', () => {
+    const event = ActivityEvent.create({
+      activity: 100,
+    });
+    expect(event).toBeInstanceOf(EatActivityEvent);
+  });
 });
 
 describe('AsleepActivityEvent', () => {

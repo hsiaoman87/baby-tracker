@@ -38,7 +38,7 @@ export function parseTime(timestamp) {
 export class ActivityEvent {
   static create(row) {
     const start = parseTime(row.timestamp);
-    const text = row.activity;
+    const text = String(row.activity);
     if (text.match(/poo/)) {
       return new PoopActivityEvent({ start, text });
     } else if (text.match(/sleep|down/)) {
