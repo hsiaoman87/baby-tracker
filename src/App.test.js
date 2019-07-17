@@ -251,17 +251,20 @@ describe('getEventsGroupedByDate', () => {
 });
 
 describe('getTotalTimeAsleep', () => {
-  const rows = [
-    {
-      timestamp: 'June 4, 2019 at 10:19PM',
-      activity: 'asleep',
-    },
-    {
-      timestamp: 'June 5, 2019 at 11:19AM',
-      activity: 'awake',
-    },
-  ];
-  const { events } = processEvents(rows);
+  let events;
+  beforeEach(() => {
+    const rows = [
+      {
+        timestamp: 'June 4, 2019 at 10:19PM',
+        activity: 'asleep',
+      },
+      {
+        timestamp: 'June 5, 2019 at 11:19AM',
+        activity: 'awake',
+      },
+    ];
+    ({ events } = processEvents(rows));
+  });
 
   it('works for last night sleep', () => {
     const totalTimeAsleep = getTotalTimeAsleep(events, '2019-06-04');
