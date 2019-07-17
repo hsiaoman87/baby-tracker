@@ -276,6 +276,7 @@ export function processEvents(rows) {
         const lastAsleepEvent = recent[EVENT_TYPES.ASLEEP];
         if (lastAsleepEvent && lastAsleepEvent.canCoalesce(event)) {
           lastAsleepEvent.add(event);
+          return acc;
         } else {
           acc.push(event);
         }
@@ -283,6 +284,7 @@ export function processEvents(rows) {
         const lastEatEvent = recent[EVENT_TYPES.EAT];
         if (lastEatEvent && lastEatEvent.canCoalesce(event)) {
           lastEatEvent.add(event);
+          return acc;
         } else {
           acc.push(event);
         }

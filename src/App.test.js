@@ -171,7 +171,7 @@ describe('processEvents', () => {
   it('coalesces eat events', () => {
     const rows = [
       {
-        timestamp: 'June 5, 2019 at 10:19PM',
+        timestamp: 'June 5, 2019 at 10:19AM',
         activity: 'took 100',
       },
       {
@@ -181,6 +181,25 @@ describe('processEvents', () => {
     ];
     const { events } = processEvents(rows);
     expect(events).toHaveLength(1);
+  });
+
+  it('coalesces 2 of 3 eat events', () => {
+    const rows = [
+      {
+        timestamp: 'June 5, 2019 at 10:19AM',
+        activity: 'took 100',
+      },
+      {
+        timestamp: 'June 5, 2019 at 10:49AM',
+        activity: 'took 100',
+      },
+      {
+        timestamp: 'June 5, 2019 at 11:39AM',
+        activity: 'took 100',
+      },
+    ];
+    const { events } = processEvents(rows);
+    expect(events).toHaveLength(2);
   });
 
   it('does not coalesce eat events outside 1 hour', () => {
