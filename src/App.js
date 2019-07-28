@@ -276,7 +276,6 @@ export function processEvents(rows) {
         const lastAsleepEvent = recent[EVENT_TYPES.ASLEEP];
         if (lastAsleepEvent && lastAsleepEvent.canCoalesce(event)) {
           lastAsleepEvent.add(event);
-          return acc;
         } else {
           acc.push(event);
         }

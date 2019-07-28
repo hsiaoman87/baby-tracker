@@ -11,6 +11,7 @@ import App, {
   processEvents,
   getEventsGroupedByDate,
   getTotalTimeAsleep,
+  EVENT_TYPES,
 } from './App';
 
 it('renders without crashing', () => {
@@ -149,8 +150,10 @@ describe('processEvents', () => {
         activity: 'is awake',
       },
     ];
-    const { events } = processEvents(rows);
+    const { events, recent } = processEvents(rows);
     expect(events).toHaveLength(1);
+    expect(recent).toHaveProperty(EVENT_TYPES.ASLEEP);
+    expect(recent).toHaveProperty(EVENT_TYPES.AWAKE);
   });
 
   it('does not coalesce sleep events outside 24 hours', () => {
