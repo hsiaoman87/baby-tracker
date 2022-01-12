@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import listPlugin from '@fullcalendar/list';
 import timeGridPlugin from '@fullcalendar/timegrid';
-import gsjson from 'google-spreadsheet-to-json';
 import * as _ from 'lodash-es';
 import {
   addHours,
@@ -437,9 +436,11 @@ function App() {
 
   useEffect(() => {
     async function fetchData() {
-      const rows = await gsjson({
-        spreadsheetId: process.env.REACT_APP_SPREADSHEET_ID,
-      });
+      const response = await fetch(
+        process.env.REACT_APP_GOOGLE_SPREADSHEET_JSON_URL
+      );
+
+      const rows = await response.json();
 
       const { events, recent } = processEvents(rows);
 
