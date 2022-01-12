@@ -44,7 +44,7 @@ export class ActivityEvent {
       return new AsleepActivityEvent({ start, text });
     } else if (text.match(/wake|up/)) {
       return new AwakeActivityEvent({ start, text });
-    } else if (text.match(/\d+/)) {
+    } else if (text.match(/took \d+/) || !isNaN(Number(text))) {
       return new EatActivityEvent({ start, text });
     } else {
       return new ActivityEvent({ start, text });
