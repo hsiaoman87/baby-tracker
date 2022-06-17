@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import listPlugin from '@fullcalendar/list';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -433,6 +433,7 @@ function getNextSleepEvent(recent) {
 
 function App() {
   const [data, setData] = useState();
+  const calendarRef = useRef();
 
   useEffect(() => {
     async function fetchData() {
@@ -465,6 +466,16 @@ function App() {
     };
   }, []);
 
+  const handleGoto = () => {
+    const currentDate = calendarRef.current.calendar.state.currentDate;
+
+    const dateString = prompt('Enter a date:', format(currentDate, 'M/D/YY'));
+    if (dateString) {
+      const date = parse(dateString);
+      calendarRef.current.calendar.gotoDate(date);
+    }
+  };
+
   return (
     <div className="root">
       <FullCalendar
@@ -474,12 +485,16 @@ function App() {
         timeGridEventMinHeight={40}
         nowIndicator
         header={{
-          left: 'prev,next today',
+          left: 'prev,next today goto',
           center: 'title',
           right: 'timeGridWeek,timeGridDay,listDay',
         }}
+        customButtons={{
+          goto: { text: 'jump', click: handleGoto },
+        }}
         plugins={[listPlugin, timeGridPlugin]}
         events={data}
+        ref={calendarRef}
       />
     </div>
   );
