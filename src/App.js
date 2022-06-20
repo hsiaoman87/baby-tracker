@@ -467,7 +467,7 @@ function App() {
   }, []);
 
   const handleGoto = () => {
-    const currentDate = calendarRef.current.calendar.state.currentDate;
+    const currentDate = calendarRef.current.calendar.getDate();
 
     const dateString = prompt('Enter a date:', format(currentDate, 'M/D/YY'));
     if (dateString) {
