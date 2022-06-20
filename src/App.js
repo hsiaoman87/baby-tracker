@@ -4,7 +4,9 @@ import listPlugin from '@fullcalendar/list';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import * as _ from 'lodash-es';
 import {
+  addDays,
   addHours,
+  differenceInDays,
   differenceInHours,
   differenceInMinutes,
   format,
@@ -476,6 +478,20 @@ function App() {
     }
   };
 
+  const handleToggle = () => {
+    const currentDate = calendarRef.current.calendar.getDate();
+    const persieDueDate = new Date(2019, 0, 28);
+    const casDueDate = new Date(2022, 0, 4);
+    const difference = differenceInDays(casDueDate, persieDueDate);
+    let nextDate;
+    if (currentDate < casDueDate) {
+      nextDate = addDays(currentDate, difference);
+    } else {
+      nextDate = addDays(currentDate, -difference);
+    }
+    calendarRef.current.calendar.gotoDate(nextDate);
+  };
+
   return (
     <div className="root">
       <FullCalendar
@@ -485,12 +501,13 @@ function App() {
         timeGridEventMinHeight={40}
         nowIndicator
         header={{
-          left: 'prev,next today goto',
+          left: 'prev,next today goto toggle',
           center: 'title',
           right: 'timeGridWeek,timeGridDay,listDay',
         }}
         customButtons={{
           goto: { text: 'jump', click: handleGoto },
+          toggle: { text: 'toggle', click: handleToggle },
         }}
         plugins={[listPlugin, timeGridPlugin]}
         events={data}
