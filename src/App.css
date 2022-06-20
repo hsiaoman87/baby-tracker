@@ -16,7 +16,7 @@
   the calendar will be butting up against the edges,
   but let's scoot in the header's buttons
   */
-  padding: 1em;
+  margin: 1em;
 }
 
 .fc-left {
@@ -29,4 +29,25 @@
 
 .fc-toolbar h2 {
   text-align: center;
+}
+
+@media (max-width: 767px) {
+  .fc-toolbar.fc-header-toolbar {
+    display: flex;
+    flex-direction: column;
+  }
+  .fc-toolbar.fc-header-toolbar .fc-left {
+    order: 3;
+    margin-top: 0.5em;
+    margin-bottom: 0;
+  }
+  .fc-toolbar.fc-header-toolbar .fc-center {
+    order: 1;
+    margin-top: 0.5em;
+  }
+  .fc-toolbar.fc-header-toolbar .fc-right {
+    order: 2;
+    margin-top: 0.5em;
+    margin-bottom: 0;
+  }
 }
